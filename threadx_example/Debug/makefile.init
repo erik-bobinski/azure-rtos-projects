@@ -1,0 +1,11 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+arg1 = $(1)
+export PATH=/Applications/Renesas e2 studio with RA FSP v5.5.0/toolchains/arm-gnu-toolchain-13.2.Rel1-darwin-arm64-arm-none-eabi/bin/:/Applications/Renesas e2 studio with RA FSP v5.5.0/Renesas e2 studio with RA FSP 5.5.0.app/Contents/eclipse/plugins/com.renesas.ide.exttools.uutils.macosx.aarch64_1.0.0.v20230526-0850/uutils/:/Applications/Renesas e2 studio with RA FSP v5.5.0/Renesas e2 studio with RA FSP 5.5.0.app/Contents/eclipse/plugins/com.renesas.ide.exttools.gnumake.macosx.aarch64_1.0.0.v20230525-1125/mk/:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/ghdl-0.37-macosx-mcode/bin:/Library/Frameworks/Python.framework/Versions/3.12/:/Library/Frameworks/Python.framework/Versions/3.12/bin/
+export TCINSTALL=/Applications/Renesas e2 studio with RA FSP v5.5.0/toolchains/arm-gnu-toolchain-13.2.Rel1-darwin-arm64-arm-none-eabi/
+export CWD=$(CURDIR)
+export TC_VERSION=13.2.1.arm-13-7
+export PWD=$(CURDIR)
+export GCC_VERSION=13.2.1
