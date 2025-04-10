@@ -9,7 +9,7 @@ import (
 
 func main() {
 	if len(os.Args) != 3 {
-		fmt.Println("Usage: go run script.go <input.html> <output.c>")
+		fmt.Println("Usage: go run converter.go <input.html> <output.c>")
 		return
 	}
 

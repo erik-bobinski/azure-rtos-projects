@@ -7,9 +7,20 @@
 </head>
 <body>
     <h1>Test Page</h1>
-    <ul>
-        <li>List item 1</li>
-        <li>List item 2</li>
-    </ul>
+    <p id="displayVariable"></p>
+    <button id="incrementButton">Increment</button>
+    <script>
+        // Define a variable
+        let myVariable = 0;
+        
+        // Display the variable in the paragraph element
+        document.getElementById('displayVariable').textContent = myVariable;
+        
+        // Add click event listener to the button
+        document.getElementById('incrementButton').addEventListener('click', () => {
+            myVariable++;
+            document.getElementById('displayVariable').textContent = myVariable;
+        });
+    </script>
 </body>
 </html>
