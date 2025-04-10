@@ -10,15 +10,32 @@
 
 /* HTTP contents */
 char test_contents[] =
-"<HTML>\r\n"
-"<HEAD><TITLE>NetX HTTP Test</TITLE></HEAD>\r\n"
-"<BODY>\r\n"
-"<H1>Another NetX Test Page!</H1>\r\n"
-"<ul>\r\n"
-"<li>Item 1</li>\r\n"
-"<li>Item 2</li>\r\n"
-"</ul>\r\n"
-"</BODY>\r\n"
-"</HTML>\r\n";
+        "<!DOCTYPE html>\r\n"
+        "<html lang=\"en\">\r\n"
+        "<head>\r\n"
+        "    <meta charset=\"UTF-8\">\r\n"
+        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n"
+        "    <title>Document</title>\r\n"
+        "</head>\r\n"
+        "<body>\r\n"
+        "    <h1>Test Page</h1>\r\n"
+        "    <p id=\"displayVariable\"></p>\r\n"
+        "    <button id=\"incrementButton\">Increment</button>\r\n"
+        "    <script>\r\n"
+        "        // Define a variable\r\n"
+        "        let myVariable = 0;\r\n"
+        "        \r\n"
+        "        // Display the variable in the paragraph element\r\n"
+        "        document.getElementById('displayVariable').textContent = myVariable;\r\n"
+        "        \r\n"
+        "        // Add click event listener to the button\r\n"
+        "        document.getElementById('incrementButton').addEventListener('click', () => {\r\n"
+        "            myVariable++;\r\n"
+        "            document.getElementById('displayVariable').textContent = myVariable;\r\n"
+        "        });\r\n"
+        "    </script>\r\n"
+        "</body>\r\n"
+        "</html>\r\n";
+
 
 #endif /* HTML_CONTENT_H_ */

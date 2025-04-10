@@ -149,8 +149,7 @@ src/new_thread0_entry.o: ../src/new_thread0_entry.c \
  C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_udp.h \
  C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_api.h \
  C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_ip.h \
- C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_ipv4.h \
- ../src/html_content.h
+ C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_ipv4.h
 C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza_gen/new_thread0.h:
 C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\fsp\inc\api/bsp_api.h:
 C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\fsp\inc\api/fsp_common_api.h:
@@ -302,4 +301,3 @@ C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\a
 C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_api.h:
 C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_ip.h:
 C:\Users\ebob\e2_studio\workspace\netx_demo_http_server_rza3_fsp\rza\microsoft\azure-rtos\netxduo\common\inc/nx_ipv4.h:
-../src/html_content.h:

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NetX Demo Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #counter {
+            font-size: 24px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>NetX Demo Control</h1>
+    <div id="counter">Counter: 0</div>
+    <button onclick="incrementCounter()">Increment Counter</button>
+
+    <script>
+        let counter = 0;
+        
+        function incrementCounter() {
+            fetch('/increment', {
+                method: 'POST'
+            })
+            .then(response => response.text())
+            .then(data => {
+                counter = parseInt(data);
+                document.getElementById('counter').textContent = `Counter: ${counter}`;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Update counter on page load
+        window.onload = function() {
+            fetch('/get_counter')
+            .then(response => response.text())
+            .then(data => {
+                counter = parseInt(data);
+                document.getElementById('counter').textContent = `Counter: ${counter}`;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html> 
