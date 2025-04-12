@@ -1,5 +1,6 @@
 #include "new_thread0.h"
 
+// NetX Includes
 #ifdef FEATURE_NX_IPV6
 #include "../../addons/http/nxd_http_server.h"
 #else
@@ -10,8 +11,23 @@
 
 #include <string.h>
 
+// FileX Includes
+#include "fx_api.h"
+
+// FileX important variables
+FX_MEDIA ram_disk;
+// CHAR *ram_disk_memory = pointer; // pointer from new_thread0.c
+FX_FILE my_file;
+uint8_t media_memory[512];                           // Media buffer for FileX operations
+uint8_t ram_disk_memory[2048] BSP_ALIGN_VARIABLE(4); // Dedicated RAM disk memory
+
 /* Global counter variable */
 static UINT counter = 0;
+
+/* File content storage */
+#define MAX_FILE_CONTENT_SIZE 1024
+static char file_content[MAX_FILE_CONTENT_SIZE];
+static ULONG file_content_size = 0;
 
 /* Function declarations*/
 static void nx_common_init0(void);
@@ -21,6 +37,7 @@ static void print_ip(ULONG ip);
 static UINT serve_html_file(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
 static UINT handle_increment(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
 static UINT handle_get_counter(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
+VOID _fx_ram_driver(FX_MEDIA *media_ptr);
 
 #define LINK_ENABLE_WAIT_TIME (1000U)
 
@@ -52,6 +69,11 @@ NX_PACKET *Sample_packet_ptr;
 /* Startup Thread entry function */
 void new_thread0_entry(void)
 {
+    // some vars for FileX processing
+    ULONG actual;
+    CHAR local_buffer[40];
+
+    // status used for NetX and FileX
     UINT status = NX_SUCCESS;
 
     /* Initialize the NetX system.*/
@@ -62,6 +84,107 @@ void new_thread0_entry(void)
 
     /* create the ip instance.*/
     ip_init0();
+
+    // init the FileX system
+    _fx_system_initialize();
+
+    /* Format the RAM disk */
+    _fx_media_format(&ram_disk,
+                     _fx_ram_driver,          // Driver entry
+                     (CHAR *)ram_disk_memory, // RAM disk memory pointer
+                     media_memory,            // Media buffer pointer
+                     sizeof(media_memory),    // Media buffer size
+                     "MY_RAM_DISK",           // Volume Name
+                     1,                       // Number of FATs
+                     32,                      // Directory Entries
+                     0,                       // Hidden sectors
+                     256,                     // Total sectors
+                     512,                     // Sector size
+                     8,                       // Sectors per cluster
+                     1,                       // Heads
+                     1);                      // Sectors per track
+
+    status = _fx_media_open(&ram_disk, "RAM DISK", _fx_ram_driver, (CHAR *)ram_disk_memory, media_memory, sizeof(media_memory));
+    if (status != FX_SUCCESS)
+    {
+        printf("Media open failed!\r\n");
+        return;
+    }
+    printf("Media open successfully completed");
+    counter++;
+
+    // FileX: Create, Read, Write, and Close a file
+    status = _fx_file_create(&ram_disk, "TEST.txt");
+    if (status != FX_SUCCESS && status != FX_ALREADY_CREATED)
+    {
+        printf("FILE_CREATE_FAILED ERRNUM=%x\n\r", status);
+        return;
+    }
+
+    status = _fx_file_open(&ram_disk, &my_file, "TEST.txt", FX_OPEN_FOR_WRITE);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE_OPEN_FAILED ERRNUM=%x\n\r", status);
+        return;
+    }
+
+    // seek to the beginning of test file
+    status = _fx_file_seek(&my_file, 0);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE_SEEK failed ERRNUM=%x\n\r", status);
+        return;
+    }
+
+    // write a string to the test file
+    status = _fx_file_write(&my_file, "CONTENT WRITTEN TO FILE VIA FILEX\n", 34);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE_WRITE failed ERRNUM=%x\n\r", status);
+        return;
+    }
+
+    // seek back to beginning of the test file
+    status = _fx_file_seek(&my_file, 0);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE_SEEK failed ERRNUM=%x\n\r");
+        return;
+    }
+
+    // read the first 34 bytes of the test file
+    status = _fx_file_read(&my_file, file_content, MAX_FILE_CONTENT_SIZE, &file_content_size);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE_READ failed ERRNUM=%x\n\r", status);
+        return;
+    }
+
+    // Null terminate the string
+    if (file_content_size < MAX_FILE_CONTENT_SIZE)
+    {
+        file_content[file_content_size] = '\0';
+    }
+
+    // Print the file content
+    printf("File content: %s\n\r", file_content);
+    printf("File size: %lu bytes\n\r", file_content_size);
+
+    // close the test file
+    _fx_file_close(&my_file);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE CLOSE failed ERRNUM=%x\n\r", status);
+        return;
+    }
+
+    // close the media
+    status = fx_media_close(&ram_disk);
+    if (status != FX_SUCCESS)
+    {
+        printf("FILE CLOSE failed ERRNUM=%x\n\r");
+        return;
+    }
 
     /* Create the HTTP Server.  */
     status = nx_http_server_create(&my_server, "My HTTP Server", &g_ip0, NX_NULL,
