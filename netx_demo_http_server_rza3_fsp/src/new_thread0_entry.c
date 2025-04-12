@@ -37,6 +37,8 @@ static void print_ip(ULONG ip);
 static UINT serve_html_file(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
 static UINT handle_increment(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
 static UINT handle_get_counter(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
+static UINT handle_get_file_contents(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
+static UINT handle_save_file(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr);
 VOID _fx_ram_driver(FX_MEDIA *media_ptr);
 
 #define LINK_ENABLE_WAIT_TIME (1000U)
@@ -356,6 +358,20 @@ UINT user_request_notify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *re
             return handle_get_counter(server_ptr, packet_ptr);
         }
     }
+    else if (strcmp(resource, "/get_file_contents") == 0)
+    {
+        if (request_type == NX_HTTP_SERVER_GET_REQUEST)
+        {
+            return handle_get_file_contents(server_ptr, packet_ptr);
+        }
+    }
+    else if (strcmp(resource, "/save_file") == 0)
+    {
+        if (request_type == NX_HTTP_SERVER_POST_REQUEST)
+        {
+            return handle_save_file(server_ptr, packet_ptr);
+        }
+    }
 
     /* Return 404 for unknown routes */
     char response[] = "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nNot Found";
@@ -365,13 +381,86 @@ UINT user_request_notify(NX_HTTP_SERVER *server_ptr, UINT request_type, CHAR *re
 
 static UINT serve_html_file(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr)
 {
-    char response[1024];
-    char html_content[] = "<!DOCTYPE html><html><head><title>NetX Demo Control</title><style>body{font-family:Arial,sans-serif;margin:40px;text-align:center}button{padding:10px 20px;font-size:16px;cursor:pointer}#counter{font-size:24px;margin:20px}</style></head><body><h1>NetX Demo Control</h1><div id=\"counter\">Counter: 0</div><button onclick=\"incrementCounter()\">Increment Counter</button><script>let counter=0;function incrementCounter(){fetch('/increment',{method:'POST'}).then(response=>response.text()).then(data=>{counter=parseInt(data);document.getElementById('counter').textContent=`Counter: ${counter}`}).catch(error=>console.error('Error:',error))}window.onload=function(){fetch('/get_counter').then(response=>response.text()).then(data=>{counter=parseInt(data);document.getElementById('counter').textContent=`Counter: ${counter}`}).catch(error=>console.error('Error:',error))}</script></body></html>";
+    char header[128];
+    const char html_start[] = "<!DOCTYPE html><html><head><title>NetX Demo Control</title>"
+                              "<style>body{font-family:Arial,sans-serif;margin:40px;text-align:center}"
+                              "button{padding:10px 20px;font-size:16px;cursor:pointer;margin:10px}"
+                              "#counter{font-size:24px;margin:20px}"
+                              "#file-content{background:#f5f5f5;padding:20px;margin:20px auto;max-width:800px;"
+                              "text-align:left;white-space:pre-wrap;font-family:monospace}"
+                              "textarea{width:800px;height:200px;margin:20px auto;display:block;padding:10px}"
+                              "</style></head><body>";
 
-    sprintf(response, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n%s",
-            strlen(html_content), html_content);
+    const char html_middle[] = "<h1>NetX Demo Control</h1>"
+                               "<div id=\"counter\">Counter: 0</div>"
+                               "<button onclick=\"incrementCounter()\">Increment Counter</button>"
+                               "<h2>File Contents</h2>"
+                               "<div id=\"file-content\">Loading...</div>"
+                               "<button onclick=\"refreshFileContents()\">Refresh File Contents</button>"
+                               "<h2>Edit File Contents</h2>"
+                               "<textarea id=\"editor\" placeholder=\"Enter new file contents\"></textarea>"
+                               "<button onclick=\"saveFileContents()\">Save Changes</button>";
 
-    nx_http_server_callback_data_send(server_ptr, response, strlen(response));
+    const char html_end[] = "<script>"
+                            "let counter=0;"
+                            "function incrementCounter(){"
+                            "fetch('/increment',{method:'POST'})"
+                            ".then(response=>response.text())"
+                            ".then(data=>{"
+                            "counter=parseInt(data);"
+                            "document.getElementById('counter').textContent=`Counter: ${counter}`"
+                            "}).catch(error=>console.error('Error:',error))"
+                            "}"
+                            "function refreshFileContents(){"
+                            "fetch('/get_file_contents')"
+                            ".then(response=>response.text())"
+                            ".then(data=>{"
+                            "document.getElementById('file-content').textContent=data;"
+                            "document.getElementById('editor').value=data;"
+                            "}).catch(error=>console.error('Error:',error))"
+                            "}"
+                            "function saveFileContents(){"
+                            "const content=document.getElementById('editor').value;"
+                            "fetch('/save_file',{"
+                            "method:'POST',"
+                            "body:content"
+                            "})"
+                            ".then(response=>response.text())"
+                            ".then(data=>{"
+                            "if(data==='OK'){"
+                            "refreshFileContents();"
+                            "alert('File saved successfully!');"
+                            "}else{"
+                            "alert('Error saving file');"
+                            "}"
+                            "}).catch(error=>{"
+                            "console.error('Error:',error);"
+                            "alert('Error saving file');"
+                            "})"
+                            "}"
+                            "window.onload=function(){"
+                            "fetch('/get_counter')"
+                            ".then(response=>response.text())"
+                            ".then(data=>{"
+                            "counter=parseInt(data);"
+                            "document.getElementById('counter').textContent=`Counter: ${counter}`"
+                            "}).catch(error=>console.error('Error:',error));"
+                            "refreshFileContents();"
+                            "}"
+                            "</script></body></html>";
+
+    // Calculate total length
+    UINT total_length = strlen(html_start) + strlen(html_middle) + strlen(html_end);
+
+    // Send headers
+    sprintf(header, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: %u\r\n\r\n", total_length);
+    nx_http_server_callback_data_send(server_ptr, header, strlen(header));
+
+    // Send content in chunks
+    nx_http_server_callback_data_send(server_ptr, html_start, strlen(html_start));
+    nx_http_server_callback_data_send(server_ptr, html_middle, strlen(html_middle));
+    nx_http_server_callback_data_send(server_ptr, html_end, strlen(html_end));
+
     return (NX_HTTP_CALLBACK_COMPLETED);
 }
 
@@ -388,6 +477,76 @@ static UINT handle_get_counter(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr
 {
     char response[64];
     sprintf(response, "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\n\r\n%d", counter);
+    nx_http_server_callback_data_send(server_ptr, response, strlen(response));
+    return (NX_HTTP_CALLBACK_COMPLETED);
+}
+
+static UINT handle_get_file_contents(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr)
+{
+    char header[128];
+
+    // Send headers first
+    sprintf(header, "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %lu\r\n\r\n",
+            file_content_size);
+    nx_http_server_callback_data_send(server_ptr, header, strlen(header));
+
+    // Then send the content
+    nx_http_server_callback_data_send(server_ptr, file_content, file_content_size);
+
+    return (NX_HTTP_CALLBACK_COMPLETED);
+}
+
+static UINT handle_save_file(NX_HTTP_SERVER *server_ptr, NX_PACKET *packet_ptr)
+{
+    CHAR *content_start;
+    ULONG content_length;
+    UINT status;
+    UINT actual_size;
+    char temp_buffer[MAX_FILE_CONTENT_SIZE];
+
+    // Find the content in the packet
+    if (nx_http_server_content_get(server_ptr, packet_ptr, 0, temp_buffer,
+                                   MAX_FILE_CONTENT_SIZE, &actual_size) == NX_SUCCESS)
+    {
+        // Make sure we don't overflow our buffer
+        if (actual_size >= MAX_FILE_CONTENT_SIZE)
+        {
+            actual_size = MAX_FILE_CONTENT_SIZE - 1;
+        }
+
+        // Copy the new content
+        memcpy(file_content, temp_buffer, actual_size);
+        file_content_size = actual_size;
+
+        // Ensure null termination
+        if (file_content_size < MAX_FILE_CONTENT_SIZE)
+        {
+            file_content[file_content_size] = '\0';
+        }
+
+        // Write to the file
+        status = _fx_file_seek(&my_file, 0);
+        if (status == FX_SUCCESS)
+        {
+            status = _fx_file_write(&my_file, file_content, file_content_size);
+            if (status != FX_SUCCESS)
+            {
+                printf("File write failed: %d\n\r", status);
+            }
+        }
+        else
+        {
+            printf("File seek failed: %d\n\r", status);
+        }
+
+        // Send success response
+        char response[] = "HTTP/1.0 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nOK";
+        nx_http_server_callback_data_send(server_ptr, response, strlen(response));
+        return (NX_HTTP_CALLBACK_COMPLETED);
+    }
+
+    // Send error response
+    char response[] = "HTTP/1.0 400 Bad Request\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nError";
     nx_http_server_callback_data_send(server_ptr, response, strlen(response));
     return (NX_HTTP_CALLBACK_COMPLETED);
 }
